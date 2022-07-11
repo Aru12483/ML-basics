@@ -8,7 +8,9 @@ from keras.layers import MaxPooling2D
 from keras.layers import Dense
 from keras.layers import Flatten
 from keras.layers import Dropout
-from tensorflow.keras.optimizers import SGD
+#from tensorflow.keras.optimizers import SGD
+from tensorflow.keras.optimizers import Nadam
+#from tensorflow.keras.optimizers import Adagrad
 import tensorflow as tf
 from keras.layers import BatchNormalization
 from keras.preprocessing.image import ImageDataGenerator
@@ -35,30 +37,32 @@ def prep_pixels(train, test):
 	# return normalized images
 	return train_norm, test_norm
 
+# IDEALLY we should use a 3X3 or a 5X5 kernel size EVEN size kernels not ideal as previous layer pixels gets divided around the output layer 
 # define cnn model
 def define_model():
 	model = Sequential()
-	model.add(Conv2D(32, (2, 2), activation='relu', kernel_initializer='he_uniform', padding='same', input_shape=(28, 28, 1)))
-	model.add(Conv2D(32, (2, 2), activation='relu', kernel_initializer='he_uniform', padding='same'))
-	model.add(Conv2D(32, (2, 2), activation='relu', kernel_initializer='he_uniform', padding='same'))
-	model.add(Conv2D(32, (2, 2), activation='relu', kernel_initializer='he_uniform', padding='same'))
+	model.add(Conv2D(32, (3, 3), activation='relu', kernel_initializer='he_uniform', padding='same', input_shape=(28, 28, 1)))
+	model.add(Conv2D(32, (3, 3), activation='relu', kernel_initializer='he_uniform', padding='same'))
+	model.add(Conv2D(32, (3, 3), activation='relu', kernel_initializer='he_uniform', padding='same'))
+	#model.add(Conv2D(32, (2, 2), activation='relu', kernel_initializer='he_uniform', padding='same'))
+	model.add(Conv2D(32, (3,3),))
+	model.add(BatchNormalization())
+	model.add(MaxPooling2D((3, 3)))
+	model.add(Dropout(0.2)) # probability to droput a layer 
+	model.add(Conv2D(64, (3, 3), activation='relu', kernel_initializer='he_uniform', padding='same'))
+	model.add(Conv2D(64, (3, 3), activation='relu', kernel_initializer='he_uniform', padding='same'))
+	model.add(Conv2D(64, (3, 3), activation='relu', kernel_initializer='he_uniform', padding='same'))
+	#model.add(Conv2D(64, (2, 2), activation='relu', kernel_initializer='he_uniform', padding='same'))
+	model.add(BatchNormalization())
+	model.add(MaxPooling2D((3, 3)))
+	model.add(Dropout(0.2))
+	model.add(Conv2D(128, (3, 3), activation='relu', kernel_initializer='he_uniform', padding='same'))
+	model.add(Conv2D(128, (3, 3), activation='relu', kernel_initializer='he_uniform', padding='same'))
+	model.add(Conv2D(128, (3, 3), activation='relu', kernel_initializer='he_uniform', padding='same'))
+	#model.add(Conv2D(128, (2, 2), activation='relu', kernel_initializer='he_uniform', padding='same'))
 	model.add(BatchNormalization())
 	model.add(MaxPooling2D((2, 2)))
-	model.add(Dropout(0.22))
-	model.add(Conv2D(64, (2, 2), activation='relu', kernel_initializer='he_uniform', padding='same'))
-	model.add(Conv2D(64, (2, 2), activation='relu', kernel_initializer='he_uniform', padding='same'))
-	model.add(Conv2D(64, (2, 2), activation='relu', kernel_initializer='he_uniform', padding='same'))
-	model.add(Conv2D(64, (2, 2), activation='relu', kernel_initializer='he_uniform', padding='same'))
-	model.add(BatchNormalization())
-	model.add(MaxPooling2D((2, 2)))
-	model.add(Dropout(0.22))
-	model.add(Conv2D(128, (2, 2), activation='relu', kernel_initializer='he_uniform', padding='same'))
-	model.add(Conv2D(128, (2, 2), activation='relu', kernel_initializer='he_uniform', padding='same'))
-	model.add(Conv2D(128, (2, 2), activation='relu', kernel_initializer='he_uniform', padding='same'))
-	model.add(Conv2D(128, (2, 2), activation='relu', kernel_initializer='he_uniform', padding='same'))
-	model.add(BatchNormalization())
-	model.add(MaxPooling2D((2, 2)))
-	model.add(Dropout(0.22))
+	model.add(Dropout(0.2))
 	#model.add(Conv2D(256, (2, 2), activation='relu', kernel_initializer='he_uniform', padding='same'))
 	#model.add(Conv2D(256, (2, 2), activation='relu', kernel_initializer='he_uniform', padding='same'))
 	#model.add(MaxPooling2D((2, 2)))
@@ -68,11 +72,15 @@ def define_model():
 	#model.add(MaxPooling2D((2, 2)))
 	#model.add(Dropout(0.2))
 	model.add(Flatten())
-	model.add(Dense(128, activation='relu', kernel_initializer='he_uniform'),kernel_regularizer=regularizers.L1L2(l1=0.1, l2=0.1),bias_regularizer=regularizers.L2(0.01),activity_regularizer=regularizers.L2(0.01))
-	model.add(Dropout(0.22))
+	model.add(Dense(128, activation='relu', kernel_initializer='he_uniform',))
+    #kernel_regularizer=regularizers.l1(l1=1e-5),  # removing l2 
+		#bias_regularizer=regularizers.L2(1e-4),
+    #activity_regularizer=regularizers.l1(1e-5)))
+	model.add(Dropout(0.2))
 	model.add(Dense(10, activation='softmax'))
 	# compile model
-	opt = SGD(learning_rate=0.001, momentum=0.9)
+	#opt = SGD(learning_rate=0.001, momentum=0.9)
+	opt = Nadam(learning_rate=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-07, name="Nadam",)
 	model.compile(optimizer=opt, loss='categorical_crossentropy', metrics=['accuracy'])
 	return model
 
@@ -112,10 +120,35 @@ def run_test_harness():
 # entry point, run the test harness
 run_test_harness()
 
-#IDEAL SCENARIO
+
+
+
+
+#initial accuracy is 75%
+
 # genererally Relu as an activation function and he uniform are considered as the norm as they provide better results -> why? 
 # experimentally attained value that ReLu + he_uniform is the best performing initializer and activation function combo 
 
+
+#CHANGING KERNEL SIZE :
+# 1X1 - 89.89
+# 2X2 - 93 - exception here since images are 28x28 
+# 3X3 - last pooling layer should be 2X2 93
+# small kernel size for images smaller than 128X128 in size ideal, most popular used in all broad image classification
+# 5X5 
+# 7X7 reserved for larger images
+# 1X3 3X1 - Google ImageNet 
+# 1X1 g4 relu then 3X3 128 relu -> ResNet relies on strided convolution than using pooling layers 
+
+# CHANGING OPTIMZERS (try nesterov momentum/momentum in all applicable )
+# SGD - base result is 93%
+# SGD + nesterov
+# Adam - 94% 10 minute runtime
+# (Nadam)Adam + nesterov momentum - longer runtime same results 
+# RMSProp -
+# AdaGrad - runtime increased accuracy down 89.4
+# AdaMax - 
+# AdaDelta -
 
 # CHANGE IN INITIALIZERS
 # inital accuracy with 4 stacks of comvolution layers  with he uniform is : 92.990 %
@@ -125,10 +158,30 @@ run_test_harness()
 # changing the initialiser to variance scaling : 92.520
 # changing to lecun_uniform 92.080 % time taken is the same 
 # changing to he_normal gives 92.660 accuracy 
+# 4 layers and batch normalisation in that also decreases accuracy therefore 3 LAYERS OPTIMAL 
+
 
 #CHANGE IN BLOCKS FROM 4 TO 5 BLOCKS : 32-64-128-256-512 LAYERS WITH DROPOUTS MAX POOLING LAST LAYER IS FLATTENED AND CONNECTED TO A FULLY CONNECTED LAYER 
 # Accuracy drops after adding another layer and computation time goes up to 21 minutes and 34 seconds 91.798
 # dropping a layer and adding a 256 dense layer fully connected : drops accuracy to 92.720 still lower than initial runtime the same as 4 layers previous
+# slight increase in dropout layer yields 92.870 within randomness though also runtime was the same at around 10 minutes 
+# adding batch normalisation to the layers 
+# batch normalisation increases accuracy to 93.270% time has also increased but within stochastic 
+# changing blocks from 4 to 3 
 
-#CHANGE IN REGULARISER 
-# adding activity kernel and bias regularizer with l1 and l2 values as 0.1 
+
+
+# CHANGE IN DEPTH BUT NOT IN WIDTH : 
+# increase the width change blocks from 2 layers of 32 to 4 layers in each block -> significant increase in runtime 20  mins twice as much with minor increase in accuracy around the same as 256 layers 
+# 12 passes highest accuracy is 93.27 
+
+
+
+
+# CHANGE IN REGULARISER 
+# adding activity kernel and bias regularizer with l1 and l2 values as 0.1 taking more time than usual gave same amount of accuracy but double the time in 21 minutes converse to around 10 
+# increasing the l1 and l2 values to 0.1 reduction in accuracy of 90%
+# changing norms to l1 with 1e-5 as values display no collinarity and norms perform better with smaller sizes-> gave same accuracy results (~93) but since there is no collinearity between data -> we do not need regularisation here
+# removing the bias regulariser time complexity is still >10 mins accuracy has marginal improvements to above 93.210 same as before 
+# removing kernel - same results 
+# removing activation also same results also runtime increase is mostly due to the size of an individual block increasing 
